@@ -56,7 +56,7 @@ jobs:
         env:
           KIBANA_URL: ${{ github.event.inputs.kibana_url }}
           USERNAME: ${{ github.event.inputs.username }}
-          PASSWORD: ${{ sgithub.event.inputs.PASSWORD }}  
+          PASSWORD: ${{ github.event.inputs.PASSWORD }}  
         run: |
           $authHeader = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$env:USERNAME`:$env:PASSWORD"))
           $headers = @{
