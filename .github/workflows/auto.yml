@@ -1,0 +1,27 @@
+- name: Generate Detection Rule JSON
+  run: python generate_rule_body.py
+
+- name: Create Detection Rule in ELK
+  shell: pwsh
+  env:
+    KIBANA_URL: ${{ github.event.inputs.kibana_url }}
+    USERNAME: ${{ github.event.inputs.username }}
+    PASSWORD: ${{ secrets.KIBANA_PASSWORD }}
+  run: |
+    $authHeader = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$env:USERNAME`:$env:PASSWORD"))
+    $headers = @{
+      "Content-Type" = "application/json"
+      "kbn-xsrf"      = "true"
+      "Authorization" = $authHeader
+    }
+
+    Write-Host "Reading rule.json..."
+    $body = Get-Content "rule.json" -Raw
+
+    Write-Host "Sending Detection Rule to Kibana..."
+    Invoke-RestMethod -Uri "$env:KIBANA_URL/api/detection_engine/rules" `
+                      -Headers $headers `
+                      -Method POST `
+                      -Body $body
+
+    Write-Host "✅ Detection Rule Created Successfully!"
