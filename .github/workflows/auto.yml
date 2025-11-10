@@ -1,27 +1,60 @@
-- name: Generate Detection Rule JSON
-  run: python generate_rule_body.py
+name: Create ELK Detection Rule
 
-- name: Create Detection Rule in ELK
-  shell: pwsh
-  env:
-    KIBANA_URL: ${{ github.event.inputs.kibana_url }}
-    USERNAME: ${{ github.event.inputs.username }}
-    PASSWORD: ${{ secrets.KIBANA_PASSWORD }}
-  run: |
-    $authHeader = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$env:USERNAME`:$env:PASSWORD"))
-    $headers = @{
-      "Content-Type" = "application/json"
-      "kbn-xsrf"      = "true"
-      "Authorization" = $authHeader
-    }
+on:
+  workflow_dispatch:
+    inputs:
+      kibana_url:
+        description: 'Kibana URL (e.g. http://104.197.3.125:5601)'
+        required: true
+      username:
+        description: 'Kibana Username'
+        required: true
 
-    Write-Host "Reading rule.json..."
-    $body = Get-Content "rule.json" -Raw
+jobs:
+  create-rule:
+    runs-on: windows-latest  # Use Windows for PowerShell compatibility
 
-    Write-Host "Sending Detection Rule to Kibana..."
-    Invoke-RestMethod -Uri "$env:KIBANA_URL/api/detection_engine/rules" `
-                      -Headers $headers `
-                      -Method POST `
-                      -Body $body
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    Write-Host "✅ Detection Rule Created Successfully!"
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Generate Detection Rule JSON
+        run: python generate_rule_body.py
+
+      - name: Create Detection Rule in ELK
+        shell: pwsh
+        env:
+          KIBANA_URL: ${{ github.event.inputs.kibana_url }}
+          USERNAME: ${{ github.event.inputs.username }}
+          PASSWORD: ${{ secrets.KIBANA_PASSWORD }}
+        run: |
+          $pair = "$env:USERNAME`:$env:PASSWORD"
+          $encoded = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
+          $authHeader = "Basic $encoded"
+
+          $headers = @{
+            "Content-Type" = "application/json"
+            "kbn-xsrf"      = "true"
+            "Authorization" = $authHeader
+          }
+
+          Write-Host "Reading rule.json..."
+          $body = Get-Content "rule.json" -Raw
+
+          Write-Host "Sending Detection Rule to Kibana..."
+          try {
+              $response = Invoke-RestMethod -Uri "$env:KIBANA_URL/api/detection_engine/rules" `
+                                            -Headers $headers `
+                                            -Method POST `
+                                            -Body $body
+              Write-Host "Detection Rule Created Successfully!"
+              Write-Output $response | ConvertTo-Json -Depth 5
+          }
+          catch {
+              Write-Error "Failed to create rule: $($_.Exception.Message)"
+          }
