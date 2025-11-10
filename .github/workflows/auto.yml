@@ -9,6 +9,9 @@ on:
       username:
         description: 'Kibana Username'
         required: true
+      PASSWORD:
+        description: 'Kibana PASSWORD'
+        required: true
 
 jobs:
   create-rule:
@@ -22,16 +25,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-
-      - name: Generate Detection Rule JSON
-        run: python generate_rule_body.py
-
+        
       - name: Create Detection Rule in ELK
         shell: pwsh
         env:
           KIBANA_URL: ${{ github.event.inputs.kibana_url }}
           USERNAME: ${{ github.event.inputs.username }}
-          PASSWORD: ${{ secrets.KIBANA_PASSWORD }}
+          PASSWORD: ${{ github.event.inputs.PASSWORD }}
         run: |
           $pair = "$env:USERNAME`:$env:PASSWORD"
           $encoded = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes($pair))
