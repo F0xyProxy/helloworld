@@ -9,6 +9,9 @@ on:
       username:
         description: 'Kibana Username'
         required: true
+      PASSWORD:
+        description: 'Kibana PASSWORD'
+        required: true
       rule_id:
         description: 'Rule ID'
         default: 'powershell-execution-rule'
@@ -53,7 +56,7 @@ jobs:
         env:
           KIBANA_URL: ${{ github.event.inputs.kibana_url }}
           USERNAME: ${{ github.event.inputs.username }}
-          PASSWORD: ${{ secrets.KIBANA_PASSWORD }}   # store securely in GitHub Secrets
+          PASSWORD: ${{ sgithub.event.inputs.PASSWORD }}  
         run: |
           $authHeader = "Basic " + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$env:USERNAME`:$env:PASSWORD"))
           $headers = @{
